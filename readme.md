@@ -27,9 +27,12 @@ This project is built using Spring Boot **4.0.3**, so make sure your environment
 
 ### 🔹 Database
 
-* **PostgreSQL**
+* For database we are using **docker**. You need to install docker desktop first and
+Run the docker compose file using:
 
-This project is required postgreSQL database. with database name **diboo_db**
+```
+docker compose up -d
+```
 
 ---
 
