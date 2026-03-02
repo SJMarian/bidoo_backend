@@ -22,57 +22,59 @@ import jakarta.validation.Valid;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
+        private final UserRepository userRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final JwtUtil jwtUtil;
+        private final AuthenticationManager authenticationManager;
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest().body(
-                    ApiResponse.error("Email is already taken", HttpStatus.BAD_REQUEST.value()));
+        @PostMapping("/register")
+        public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+                if (userRepository.existsByEmail(request.getEmail())) {
+                        return ResponseEntity.badRequest().body(
+                                        ApiResponse.error("Email is already taken", HttpStatus.BAD_REQUEST.value()));
+                }
+
+                Role userRole = Role.USER;
+                if (request.getRole() != null && request.getRole().equalsIgnoreCase("admin")) {
+                        userRole = Role.ADMIN;
+                }
+
+                User user = User.builder()
+                                .name(request.getName())
+                                .email(request.getEmail())
+                                .phone(request.getPhone())
+                                .password(passwordEncoder.encode(request.getPassword()))
+                                .role(userRole)
+                                .build();
+
+                userRepository.save(user);
+
+                String jwtToken = jwtUtil.generateToken(user);
+                AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseData, "User registered successfully",
+                                                HttpStatus.OK.value()));
         }
 
-        Role userRole = Role.USER;
-        if (request.getRole() != null && request.getRole().equalsIgnoreCase("admin")) {
-            userRole = Role.ADMIN;
+        @PostMapping("/login")
+        public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
+                try {
+                        authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(
+                                                        request.getEmail(),
+                                                        request.getPassword()));
+                } catch (Exception e) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                                        ApiResponse.error("Invalid email or password",
+                                                        HttpStatus.UNAUTHORIZED.value()));
+                }
+
+                User user = userRepository.findByEmail(request.getEmail())
+                                .orElseThrow();
+
+                String jwtToken = jwtUtil.generateToken(user);
+                AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseData, "Login successful", HttpStatus.OK.value()));
         }
-
-        User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(userRole)
-                .build();
-
-        userRepository.save(user);
-
-        String jwtToken = jwtUtil.generateToken(user);
-        AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
-        return ResponseEntity.ok(
-                ApiResponse.success(responseData, "User registered successfully", HttpStatus.OK.value()));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    ApiResponse.error("Invalid email or password", HttpStatus.UNAUTHORIZED.value()));
-        }
-
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow();
-
-        String jwtToken = jwtUtil.generateToken(user);
-        AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
-        return ResponseEntity.ok(
-                ApiResponse.success(responseData, "Login successful", HttpStatus.OK.value()));
-    }
 }
