@@ -1,4 +1,5 @@
 spring.application.name=bidoo_backend
+server.port=8080
 
 # PostgreSQL DB connection
 spring.datasource.url=jdbc:postgresql://localhost:5432/bidoo_db
