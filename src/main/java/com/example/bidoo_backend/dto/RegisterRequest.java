@@ -22,7 +22,7 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^(?:\\+88|88)?(01[3-9]\\d{8})$", message = "Invalid Bangladesh phone number")
+    @Pattern(regexp = "^(?:\\+88|88)?(01[3-9]\\d{8})$", message = "Invalid phone number")
     private String phone;
 
     @NotBlank(message = "Password is required")
