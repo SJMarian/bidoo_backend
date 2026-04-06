@@ -1,12 +1,10 @@
 package com.example.bidoo_backend.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -16,7 +14,8 @@ public class AuctionImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String imageUrl;
+
     @ManyToOne
     private AuctionItem auctionItem;
-    private String imageUrl;
 }

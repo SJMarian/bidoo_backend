@@ -1,32 +1,30 @@
 package com.example.bidoo_backend.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class ApiResponse<T> {
+
     private T data;
     private String message;
-    private int statusCode;
+    private int status;
 
-    public static <T> ApiResponse<T> success(T data, String message, int statusCode) {
+    public static <T> ApiResponse<T> success(T data, String message, int status) {
         return ApiResponse.<T>builder()
                 .data(data)
                 .message(message)
-                .statusCode(statusCode)
+                .status(status)
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, int statusCode) {
+    public static <T> ApiResponse<T> error(String message, int status) {
         return ApiResponse.<T>builder()
                 .data(null)
                 .message(message)
-                .statusCode(statusCode)
+                .status(status)
                 .build();
     }
 }

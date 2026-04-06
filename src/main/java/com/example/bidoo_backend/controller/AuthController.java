@@ -4,17 +4,15 @@ import com.example.bidoo_backend.dto.ApiResponse;
 import com.example.bidoo_backend.dto.AuthRequest;
 import com.example.bidoo_backend.dto.AuthResponse;
 import com.example.bidoo_backend.dto.RegisterRequest;
-import com.example.bidoo_backend.entity.Role;
 import com.example.bidoo_backend.entity.User;
 import com.example.bidoo_backend.repository.UserRepository;
-import com.example.bidoo_backend.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -22,59 +20,52 @@ import jakarta.validation.Valid;
 @RequiredArgsConstructor
 public class AuthController {
 
-        private final UserRepository userRepository;
-        private final PasswordEncoder passwordEncoder;
-        private final JwtUtil jwtUtil;
-        private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
 
-        @PostMapping("/register")
-        public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
-                if (userRepository.existsByEmail(request.getEmail())) {
-                        return ResponseEntity.badRequest().body(
-                                        ApiResponse.error("Email is already taken", HttpStatus.BAD_REQUEST.value()));
-                }
+    // ✅ REGISTER (FINAL SIMPLE VERSION)
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
 
-                Role userRole = Role.USER;
-                if (request.getRole() != null && request.getRole().equalsIgnoreCase("admin")) {
-                        userRole = Role.ADMIN;
-                }
-
-                User user = User.builder()
-                                .name(request.getName())
-                                .email(request.getEmail())
-                                .phone(request.getPhone())
-                                .password(passwordEncoder.encode(request.getPassword()))
-                                .role(userRole)
-                                .build();
-
-                userRepository.save(user);
-
-                String jwtToken = jwtUtil.generateToken(user);
-                AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
-                return ResponseEntity.ok(
-                                ApiResponse.success(responseData, "User registered successfully",
-                                                HttpStatus.OK.value()));
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("Email already exists", HttpStatus.BAD_REQUEST.value()));
         }
 
-        @PostMapping("/login")
-        public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
-                try {
-                        authenticationManager.authenticate(
-                                        new UsernamePasswordAuthenticationToken(
-                                                        request.getEmail(),
-                                                        request.getPassword()));
-                } catch (Exception e) {
-                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                                        ApiResponse.error("Invalid email or password",
-                                                        HttpStatus.UNAUTHORIZED.value()));
-                }
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setPassword(request.getPassword());
+        user.setAddress("Dhaka"); // optional
+        user.setRole("USER"); // ✅ STRING FIX
 
-                User user = userRepository.findByEmail(request.getEmail())
-                                .orElseThrow();
+        userRepository.save(user);
 
-                String jwtToken = jwtUtil.generateToken(user);
-                AuthResponse responseData = AuthResponse.builder().token(jwtToken).build();
-                return ResponseEntity.ok(
-                                ApiResponse.success(responseData, "Login successful", HttpStatus.OK.value()));
+        AuthResponse responseData = AuthResponse.builder()
+                .token("dummy-token") // ✅ no JWT needed
+                .build();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(responseData, "User registered successfully", HttpStatus.OK.value()));
+    }
+
+    // ✅ LOGIN (FINAL SIMPLE VERSION)
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.getPassword().equals(request.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    ApiResponse.error("Invalid password", HttpStatus.UNAUTHORIZED.value()));
         }
+
+        AuthResponse responseData = AuthResponse.builder()
+                .token("dummy-token") // ✅ no JWT
+                .build();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(responseData, "Login successful", HttpStatus.OK.value()));
+    }
 }

@@ -1,10 +1,16 @@
 package com.example.bidoo_backend.repository;
 
 import com.example.bidoo_backend.entity.AuctionItem;
+import com.example.bidoo_backend.enums.AuctionItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.List;
+
 public interface AuctionItemRepository extends JpaRepository<AuctionItem, Long> {
-    // Additional query methods can be defined here if needed
+
+    List<AuctionItem> findByStatusAndBidStartingPriceBetween(
+            AuctionItemStatus status,
+            Double minPrice,
+            Double maxPrice
+    );
 }
