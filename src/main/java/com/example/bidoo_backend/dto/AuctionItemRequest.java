@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * DTO for creating a new auction item.
@@ -37,6 +36,4 @@ public class AuctionItemRequest {
     private LocalDateTime endAt;
 
     private Integer extendSeconds;
-
-    private List<String> imageUrls;
 }
