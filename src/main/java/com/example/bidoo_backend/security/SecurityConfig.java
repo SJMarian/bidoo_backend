@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers("/api/auctions/**").permitAll()
                     .requestMatchers("/api/admin/auctions/**").permitAll()
                     .anyRequest().authenticated())
                 .sessionManagement(session -> session

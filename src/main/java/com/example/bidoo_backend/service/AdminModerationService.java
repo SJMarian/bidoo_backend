@@ -131,7 +131,7 @@ public class AdminModerationService {
         requireStatus(auction, AuctionStatus.ACTIVE, "Only ACTIVE auctions can be manually closed.");
 
         auction.setStatus(AuctionStatus.CLOSED);
-        auction.setEndTime(LocalDateTime.now()); // update end time to now
+        auction.setEndAt(LocalDateTime.now()); // update end time to now
         auctionRepository.save(auction);
         logAction(auction, AdminActionType.MANUAL_CLOSE, request.getReason(), adminUsername);
         return toResponse(auction);
@@ -151,7 +151,7 @@ public class AdminModerationService {
         requireStatus(auction, AuctionStatus.CLOSED, "Only CLOSED auctions can be reopened.");
 
         auction.setStatus(AuctionStatus.ACTIVE);
-        auction.setEndTime(request.getNewEndTime());
+        auction.setEndAt(request.getNewEndTime());
         auction.setBidsBlocked(false);
         auctionRepository.save(auction);
         logAction(auction, AdminActionType.REOPEN, request.getReason(), adminUsername);
@@ -216,12 +216,12 @@ public class AdminModerationService {
                 .title(auction.getTitle())
                 .category(auction.getCategory())
                 .description(auction.getDescription())
-                .startingPrice(auction.getStartingPrice())
-                .minimumBidIncrement(auction.getMinimumBidIncrement())
-                .startTime(auction.getStartTime())
-                .endTime(auction.getEndTime())
+                .startingPrice(auction.getBidStartingPrice() != null ? java.math.BigDecimal.valueOf(auction.getBidStartingPrice()) : java.math.BigDecimal.ZERO)
+                .minimumBidIncrement(auction.getMinimumBidIncrement() != null ? java.math.BigDecimal.valueOf(auction.getMinimumBidIncrement()) : java.math.BigDecimal.ZERO)
+                .startTime(auction.getStartAt())
+                .endTime(auction.getEndAt())
                 .status(auction.getStatus())
-                .sellerUsername(auction.getSellerUsername())
+                .sellerUsername(auction.getSeller() != null ? auction.getSeller().getName() : "Unknown")
                 .rejectionReason(auction.getRejectionReason())
                 .cancellationReason(auction.getCancellationReason())
                 .bidsBlocked(auction.isBidsBlocked())

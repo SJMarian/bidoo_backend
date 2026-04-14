@@ -36,8 +36,12 @@ public class BidIncrementService {
     public BigDecimal computeMinimumNextBid(Auction auction) {
         Optional<BigDecimal> highestBidOpt = bidRepository.findHighestBidAmount(auction.getId());
 
-        BigDecimal base = highestBidOpt.orElse(auction.getStartingPrice());
-        BigDecimal increment = auction.getMinimumBidIncrement();
+        BigDecimal base = highestBidOpt.orElse(
+            auction.getBidStartingPrice() != null ? BigDecimal.valueOf(auction.getBidStartingPrice()) : BigDecimal.ZERO
+        );
+        BigDecimal increment = BigDecimal.valueOf(
+            auction.getMinimumBidIncrement() != null ? auction.getMinimumBidIncrement() : 0.0
+        );
         BidIncrementType type = auction.getBidIncrementType();
 
         if (type == BidIncrementType.PERCENTAGE) {
@@ -126,9 +130,9 @@ public class BidIncrementService {
         return BidDto.BidStateResponse.builder()
                 .auctionId(auctionId)
                 .currentHighestBid(highest.orElse(null))
-                .startingPrice(auction.getStartingPrice())
+                .startingPrice(auction.getBidStartingPrice() != null ? java.math.BigDecimal.valueOf(auction.getBidStartingPrice()) : java.math.BigDecimal.ZERO)
                 .minimumNextBid(computeMinimumNextBid(auction))
-                .minimumBidIncrement(auction.getMinimumBidIncrement())
+                .minimumBidIncrement(auction.getMinimumBidIncrement() != null ? java.math.BigDecimal.valueOf(auction.getMinimumBidIncrement()) : java.math.BigDecimal.ZERO)
                 .incrementType(auction.getBidIncrementType())
                 .bidsBlocked(auction.isBidsBlocked())
                 .auctionStatus(auction.getStatus().name())
@@ -156,7 +160,7 @@ public class BidIncrementService {
         Auction auction = findAuctionOrThrow(auctionId);
 
         if (request.getMinimumBidIncrement() != null) {
-            auction.setMinimumBidIncrement(request.getMinimumBidIncrement());
+            auction.setMinimumBidIncrement(request.getMinimumBidIncrement().doubleValue());
         }
         if (request.getIncrementType() != null) {
             auction.setBidIncrementType(request.getIncrementType());

@@ -17,6 +17,6 @@ public class AuctionImage {
     private Long id;
 
     @ManyToOne
-    private AuctionItem auctionItem;
+    private Auction auction;
     private String imageUrl;
 }

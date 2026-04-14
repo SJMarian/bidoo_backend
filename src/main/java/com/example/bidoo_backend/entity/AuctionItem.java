@@ -1,13 +1,11 @@
 package com.example.bidoo_backend.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
-
 import com.example.bidoo_backend.enums.AuctionItemStatus;
 
-@Entity
+// DEPRECATED: Consolidated into Auction.java entity
+// Keeping as reference only - DO NOT USE
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,17 +13,13 @@ import com.example.bidoo_backend.enums.AuctionItemStatus;
 @Builder
 public class AuctionItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "auction_item_seq")
-    @SequenceGenerator(name = "auction_item_seq", sequenceName = "auction_item_seq", allocationSize = 20)
+    // DEPRECATED fields - see Auction.java for live implementation
     private Long id;
 
     private String title;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @ManyToOne
     private User seller;
 
     private String currency;
@@ -35,12 +29,10 @@ public class AuctionItem {
 
     private Double currentHighestBid;
 
-    @ManyToOne
     private User currentHighestBidder;
 
     private Integer totalBids;
 
-    @Enumerated(EnumType.STRING)
     private AuctionItemStatus status;
 
     private LocalDateTime startAt;
