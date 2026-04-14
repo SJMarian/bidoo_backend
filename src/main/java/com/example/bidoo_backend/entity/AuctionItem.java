@@ -50,5 +50,7 @@ public class AuctionItem {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @Version
+    private Long version;
 
 }
