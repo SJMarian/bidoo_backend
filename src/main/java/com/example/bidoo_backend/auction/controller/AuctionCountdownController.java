@@ -2,15 +2,21 @@ package com.example.bidoo_backend.auction.controller;
 
 import com.example.bidoo_backend.auction.dto.AuctionCountdownDTO;
 import com.example.bidoo_backend.auction.dto.ServerTimeDTO;
+import com.example.bidoo_backend.auction.entity.Auction;
+import com.example.bidoo_backend.auction.entity.AuctionState;
 import com.example.bidoo_backend.auction.service.AuctionLifecycleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * REST endpoints for the countdown & server-time sync feature.
  *
  * GET /api/time                          — current server time (for clock sync)
+ * GET /api/auctions                      — all auctions
+ * GET /api/auctions/{id}                 — single auction details
  * GET /api/auctions/{id}/countdown       — timing data for one auction
  *
  * WebSocket topics (subscribe from frontend):
@@ -42,5 +48,21 @@ public class AuctionCountdownController {
     @GetMapping("/api/auctions/{id}/countdown")
     public ResponseEntity<AuctionCountdownDTO> getCountdown(@PathVariable Long id) {
         return ResponseEntity.ok(lifecycleService.getCountdown(id));
+    }
+
+    /**
+     * Returns all auctions in the system
+     */
+    @GetMapping("/api/auctions")
+    public ResponseEntity<List<Auction>> getAllAuctions() {
+        return ResponseEntity.ok(lifecycleService.getAllAuctions());
+    }
+
+    /**
+     * Returns a single auction by ID
+     */
+    @GetMapping("/api/auctions/{id}")
+    public ResponseEntity<Auction> getAuction(@PathVariable Long id) {
+        return ResponseEntity.ok(lifecycleService.getAuctionById(id));
     }
 }

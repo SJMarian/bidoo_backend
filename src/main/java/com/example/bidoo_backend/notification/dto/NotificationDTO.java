@@ -17,5 +17,7 @@ public class NotificationDTO {
     private String auctionTitle;
     private Long auctionId;
     private boolean read;
+    private Boolean accepted;
+    private Boolean rejected;
     private LocalDateTime createdAt;
 }

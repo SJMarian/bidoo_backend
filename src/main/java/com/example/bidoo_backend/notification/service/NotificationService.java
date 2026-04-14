@@ -196,6 +196,42 @@ public class NotificationService {
     }
 
     /**
+     * Accept a notification.
+     */
+    @Transactional
+    public NotificationDTO acceptNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+
+        if (!notification.getUserId().equals(userId)) {
+            throw new RuntimeException("Access denied: notification does not belong to user");
+        }
+
+        notification.setAccepted(true);
+        notification.setRejected(false);
+        notification.setRead(true);
+        return toDTO(notificationRepository.save(notification));
+    }
+
+    /**
+     * Reject a notification.
+     */
+    @Transactional
+    public NotificationDTO rejectNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+
+        if (!notification.getUserId().equals(userId)) {
+            throw new RuntimeException("Access denied: notification does not belong to user");
+        }
+
+        notification.setRejected(true);
+        notification.setAccepted(false);
+        notification.setRead(true);
+        return toDTO(notificationRepository.save(notification));
+    }
+
+    /**
      * Delete a single notification (user action).
      */
     @Transactional
@@ -221,6 +257,8 @@ public class NotificationService {
                 .auctionTitle(n.getAuctionTitle())
                 .auctionId(n.getAuctionId())
                 .read(n.isRead())
+                .accepted(n.getAccepted())
+                .rejected(n.getRejected())
                 .createdAt(n.getCreatedAt())
                 .build();
     }

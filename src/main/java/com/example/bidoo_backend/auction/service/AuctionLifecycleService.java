@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -70,6 +71,25 @@ public class AuctionLifecycleService {
                 .build();
     }
 
+    // ── Auction Queries ────────────────────────────────────────────────────────
+
+    /**
+     * Returns all auctions in the system
+     */
+    @Transactional(readOnly = true)
+    public List<Auction> getAllAuctions() {
+        return auctionRepository.findAll();
+    }
+
+    /**
+     * Returns a single auction by ID
+     */
+    @Transactional(readOnly = true)
+    public Auction getAuctionById(Long auctionId) {
+        return auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new RuntimeException("Auction not found: " + auctionId));
+    }
+
     // ── State Transitions ──────────────────────────────────────────────────────
 
     /**
@@ -78,7 +98,8 @@ public class AuctionLifecycleService {
      */
     @Transactional
     public void activateDueAuctions() {
-        List<Auction> toActivate = auctionRepository.findAuctionsToActivate(LocalDateTime.now(ZoneOffset.UTC));
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+        List<Auction> toActivate = auctionRepository.findAuctionsToActivate(now, AuctionState.UPCOMING);
         for (Auction auction : toActivate) {
             AuctionState previous = auction.getState();
             auction.setState(AuctionState.ACTIVE);
@@ -95,7 +116,8 @@ public class AuctionLifecycleService {
      */
     @Transactional
     public void closeExpiredAuctions() {
-        List<Auction> toClose = auctionRepository.findAuctionsToClose(LocalDateTime.now(ZoneOffset.UTC));
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+        List<Auction> toClose = auctionRepository.findAuctionsToClose(now, AuctionState.ACTIVE);
         for (Auction auction : toClose) {
             AuctionState previous = auction.getState();
             auction.setState(AuctionState.CLOSED);

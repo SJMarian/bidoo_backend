@@ -93,6 +93,26 @@ public class NotificationController {
     }
 
     /**
+     * Accept a notification.
+     */
+    @PatchMapping("/{id}/accept")
+    public ResponseEntity<NotificationDTO> acceptNotification(
+            @PathVariable Long id,
+            @RequestParam Long userId) {
+        return ResponseEntity.ok(notificationService.acceptNotification(id, userId));
+    }
+
+    /**
+     * Reject a notification.
+     */
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<NotificationDTO> rejectNotification(
+            @PathVariable Long id,
+            @RequestParam Long userId) {
+        return ResponseEntity.ok(notificationService.rejectNotification(id, userId));
+    }
+
+    /**
      * Delete a notification.
      */
     @DeleteMapping("/{id}")

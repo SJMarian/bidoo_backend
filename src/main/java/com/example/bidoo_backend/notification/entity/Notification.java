@@ -40,6 +40,12 @@ public class Notification {
     @Builder.Default
     private boolean read = false;
 
+    @Column(name = "is_accepted")
+    private Boolean accepted;
+
+    @Column(name = "is_rejected")
+    private Boolean rejected;
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
