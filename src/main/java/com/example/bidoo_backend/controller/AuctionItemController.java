@@ -1,3 +1,4 @@
+
 package com.example.bidoo_backend.controller;
 
 import com.example.bidoo_backend.dto.AuctionItemRequest;
@@ -27,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -51,20 +53,24 @@ public class AuctionItemController {
 
         if (images == null || images.isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("At least 1 image is required",
-                            HttpStatus.BAD_REQUEST.value()));
-        }
-
-        if (images.size() > 5) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("A maximum of 5 images is allowed",
-                            HttpStatus.BAD_REQUEST.value()));
+                    .body(ApiResponse.error("At least 1 image is required", 400));
         }
 
         User seller = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
 
-        AuctionItem auctionItem = AuctionItem.builder()
+        LocalDateTime now = LocalDateTime.now();
+        AuctionItemStatus autoStatus;
+
+        if (now.isBefore(request.getStartAt())) {
+            autoStatus = AuctionItemStatus.PENDING;
+        } else if (now.isAfter(request.getEndAt())) {
+            autoStatus = AuctionItemStatus.ENDED;
+        } else {
+            autoStatus = AuctionItemStatus.LIVE;
+        }
+
+        AuctionItem item = AuctionItem.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .seller(seller)
@@ -74,12 +80,12 @@ public class AuctionItemController {
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
                 .extendSeconds(request.getExtendSeconds())
-                .status(AuctionItemStatus.PENDING)
+                .status(autoStatus)
                 .totalBids(0)
                 .currentHighestBid(0.0)
                 .build();
 
-        AuctionItem savedItem = auctionItemRepository.save(auctionItem);
+        AuctionItem saved = auctionItemRepository.save(item);
 
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR);
@@ -88,75 +94,86 @@ public class AuctionItemController {
                 Files.createDirectories(uploadPath);
             }
 
-            List<AuctionImage> auctionImages = new ArrayList<>();
+            List<AuctionImage> imagesToSave = new ArrayList<>();
 
-            for (MultipartFile image : images) {
-                String originalFilename = image.getOriginalFilename();
-                String extension = "";
+            for (MultipartFile file : images) {
+                String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                Path path = uploadPath.resolve(fileName);
 
-                if (originalFilename != null && originalFilename.contains(".")) {
-                    extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                }
+                Files.copy(file.getInputStream(), path);
 
-                String filename = UUID.randomUUID() + extension;
-                Path filePath = uploadPath.resolve(filename);
-
-                Files.copy(image.getInputStream(), filePath);
-
-                AuctionImage auctionImage = AuctionImage.builder()
-                        .auctionItem(savedItem)
-                        .imageUrl(UPLOAD_DIR + "/" + filename)
-                        .build();
-
-                auctionImages.add(auctionImage);
+                imagesToSave.add(
+                        AuctionImage.builder()
+                                .auctionItem(saved)
+                                .imageUrl("upload/" + fileName)
+                                .build()
+                );
             }
 
-            auctionImageRepository.saveAll(auctionImages);
+            auctionImageRepository.saveAll(imagesToSave);
 
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to upload images: " + e.getMessage(),
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Image upload failed", 500));
         }
 
-        AuctionItemResponse response = AuctionItemResponse.builder()
-                .id(savedItem.getId())
-                .title(savedItem.getTitle())
-                .description(savedItem.getDescription())
-                .build();
-
         return ResponseEntity.ok(
-                ApiResponse.success(response, "Auction item created", HttpStatus.OK.value()));
+                ApiResponse.success(
+                        AuctionItemResponse.builder()
+                                .id(saved.getId())
+                                .title(saved.getTitle())
+                                .description(saved.getDescription())
+                                .build(),
+                        "Auction created",
+                        HttpStatus.OK.value()
+                )
+        );
     }
 
-    @GetMapping("/items")
-    public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getAuctionItems(Principal principal) {
-
-        User seller = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
-
-        final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
-
-        List<AuctionItemResponse> responseList = items.stream()
-                .map(item -> AuctionItemResponse.builder()
-                        .id(item.getId())
-                        .title(item.getTitle())
-                        .description(item.getDescription())
-                        .build())
-                .toList();
-
-        return ResponseEntity.ok(
-                ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value()));
-    }
-
-    // SEARCH + FILTER
     @GetMapping("/search")
     public ResponseEntity<?> searchAuctions(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) AuctionItemStatus status,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice) {
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Boolean endingSoon,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) Integer minBids,
+            @RequestParam(required = false) Integer maxBids) {
+
+        boolean noFilters =
+                keyword == null &&
+                status == null &&
+                minPrice == null &&
+                maxPrice == null &&
+                endingSoon == null &&
+                startDate == null &&
+                endDate == null &&
+                minBids == null &&
+                maxBids == null;
+
+        if (noFilters) {
+            return ResponseEntity.ok(auctionItemRepository.findAll());
+        }
+
+        LocalDateTime soonTime = Boolean.TRUE.equals(endingSoon)
+                ? LocalDateTime.now().plusMinutes(2)
+                : LocalDateTime.now().plusYears(100);
 
         return ResponseEntity.ok(
-                auctionItemRepository.searchAuctions(status, minPrice, maxPrice));
+                auctionItemRepository.searchAuctions(
+                        keyword,
+                        status != null ? status.name() : null,
+                        minPrice,
+                        maxPrice,
+                        endingSoon,
+                        startDate,
+                        endDate,
+                        minBids,
+                        maxBids,
+                        soonTime
+                )
+        );
     }
 }
