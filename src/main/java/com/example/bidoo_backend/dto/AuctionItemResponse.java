@@ -1,5 +1,6 @@
 package com.example.bidoo_backend.dto;
 
+import com.example.bidoo_backend.enums.AuctionItemStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,4 +17,8 @@ public class AuctionItemResponse {
     private Long id;
     private String title;
     private String description;
+    private String image;
+    private Double currentHighestBid;
+    private AuctionItemStatus status;
+    private Long timeLeft;
 }
