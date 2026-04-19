@@ -1,6 +1,7 @@
 package com.example.bidoo_backend.controller;
 
 import com.example.bidoo_backend.dto.ApiResponse;
+import com.example.bidoo_backend.dto.CheckOutSummaryResponse;
 import com.example.bidoo_backend.dto.OrderRequestDTO;
 import com.example.bidoo_backend.entity.*;
 import com.example.bidoo_backend.enums.OrderStatus;
@@ -235,4 +236,40 @@ public class OrderController {
 
         return ResponseEntity.badRequest().body("Transaction not found");
     }
+
+
+    @PostMapping(value = "/checkout/summary")
+    public ResponseEntity<ApiResponse<CheckOutSummaryResponse>> checkoutSummary(
+            @Valid @RequestBody OrderRequestDTO request, Principal principal) {
+
+        AuctionItem auctionItem = auctionItemRepository.findById(request.getAuctionItemId())
+                .orElseThrow(() -> new IllegalArgumentException("Auction item not found"));
+                
+                double currentBid = auctionItem.getCurrentHighestBid();
+
+                double vat = currentBid * 0.15;
+
+                // Apply minimums
+                double platformFee = currentBid * 0.02;
+                if (platformFee == 0) {
+                    platformFee = 200;
+                }
+
+                double shippingCost = currentBid * 0.05;
+                if (shippingCost == 0) {
+                    shippingCost = 500;
+}
+
+                final CheckOutSummaryResponse  response = CheckOutSummaryResponse.builder()
+                .soldPrice(currentBid)
+                .vat(vat)
+                .platfromFee(platformFee)
+                .shippingCost(shippingCost)
+                .build();
+
+                return ResponseEntity
+                    .ok(ApiResponse.success(response, "Success", HttpStatus.OK.value()));
+
+            }
+
 }
