@@ -132,6 +132,10 @@ public class AuctionItemController {
                     .map(item -> {
                         List<AuctionImage> images = auctionImageRepository.findByAuctionItem(item);
                         String imageUrl = !images.isEmpty() ? images.get(0).getImageUrl() : null;
+                        
+                        if (imageUrl != null && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+                            imageUrl = "http://localhost:8080/" + imageUrl;
+                        }
 
                         Long timeLeft = null;
                         LocalDateTime now = LocalDateTime.now();
