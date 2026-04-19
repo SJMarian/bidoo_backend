@@ -181,6 +181,7 @@ public class AuctionItemController {
                                 .currentHighestBid(item.getCurrentHighestBid())
                                 .status(item.getStatus())
                                 .timeLeft(timeLeft)
+                                .minimumBidIncrement(item.getMinimumBidIncrement())
                                 .build();
                     })
                     .toList();

@@ -21,4 +21,5 @@ public class AuctionItemResponse {
     private Double currentHighestBid;
     private AuctionItemStatus status;
     private Long timeLeft;
+    private Double minimumBidIncrement;
 }
