@@ -20,10 +20,10 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-@Service("auctionModuleLifecycleService")
+@Service
 @RequiredArgsConstructor
 @Slf4j
-public class AuctionLifecycleService {
+public class AuctionRealtimeService {
 
     private final AuctionRepository auctionRepository;
     private final SimpMessagingTemplate messagingTemplate;
