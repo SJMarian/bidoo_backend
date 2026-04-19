@@ -127,8 +127,29 @@ public class AuctionItemController {
                                 .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
 
             final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
+            List<AuctionItemResponse> responseList = mapToResponseList(items);
 
-            List<AuctionItemResponse> responseList = items.stream()
+            return ResponseEntity.ok(
+                    ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value())
+            );
+        }
+
+        @GetMapping("/items-others")
+        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getOtherAuctionItems(Principal principal) {
+            
+            User currentUser = userRepository.findByEmail(principal.getName())
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser);
+            List<AuctionItemResponse> responseList = mapToResponseList(items);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(responseList, "Other auction items fetched", HttpStatus.OK.value())
+            );
+        }
+
+        private List<AuctionItemResponse> mapToResponseList(List<AuctionItem> items) {
+            return items.stream()
                     .map(item -> {
                         List<AuctionImage> images = auctionImageRepository.findByAuctionItem(item);
                         String imageUrl = !images.isEmpty() ? images.get(0).getImageUrl() : null;
@@ -163,10 +184,6 @@ public class AuctionItemController {
                                 .build();
                     })
                     .toList();
-
-            return ResponseEntity.ok(
-                    ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value())
-            );
         }
         
 }
