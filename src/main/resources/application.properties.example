@@ -23,3 +23,6 @@ sslcommerz.is-sandbox=true
 sslcommerz.success-url=http://localhost:8080/api/v1/orders/payment/success
 sslcommerz.fail-url=http://localhost:8080/api/v1/orders/payment/fail
 sslcommerz.cancel-url=http://localhost:8080/api/v1/orders/payment/cancel
+
+##others
+frontend.base-url=http://localhost:5173
