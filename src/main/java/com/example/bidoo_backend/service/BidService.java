@@ -37,9 +37,9 @@ public class BidService {
 
             LocalDateTime now = LocalDateTime.now();
 
-            if (auctionItem.getStatus() != AuctionItemStatus.LIVE) {
-                throw new RuntimeException("Auction is not live");
-            }
+            // if (auctionItem.getStatus() != AuctionItemStatus.LIVE) {
+            //     throw new RuntimeException("Auction is not live");
+            // }
 
             if (auctionItem.getStartAt() != null && now.isBefore(auctionItem.getStartAt())) {
                 throw new RuntimeException("Auction has not started yet");
