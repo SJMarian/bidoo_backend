@@ -40,7 +40,7 @@ public class AuctionItemController {
 
         private static final String UPLOAD_DIR = "upload";
 
-        @PostMapping(value = "/item-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/item-upload")
         public ResponseEntity<ApiResponse<AuctionItemResponse>> createAuctionItem(
                         @Valid @RequestPart("request") AuctionItemRequest request,
                         @RequestPart("images") List<MultipartFile> images,
