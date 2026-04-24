@@ -1,6 +1,7 @@
 package com.example.bidoo_backend.controller;
 
 import com.example.bidoo_backend.dto.ApiResponse;
+import com.example.bidoo_backend.dto.CheckOutSummaryResponse;
 import com.example.bidoo_backend.dto.OrderRequestDTO;
 import com.example.bidoo_backend.entity.*;
 import com.example.bidoo_backend.enums.OrderStatus;
@@ -8,12 +9,17 @@ import com.example.bidoo_backend.enums.PaymentStatus;
 import com.example.bidoo_backend.enums.TransactionStatus;
 import com.example.bidoo_backend.repository.*;
 import com.example.bidoo_backend.service.SslCommerzService;
+
+import io.jsonwebtoken.io.IOException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -33,6 +39,9 @@ public class OrderController {
     private final UserRepository userRepository;
     private final AuctionItemRepository auctionItemRepository;
     private final SslCommerzService sslCommerzService;
+
+    @Value("${frontend.base-url}")
+    private String frontendBaseUrl;
 
     @PostMapping
     public ResponseEntity<ApiResponse<String>> placeOrder(
@@ -150,10 +159,11 @@ public class OrderController {
     }
 
     @PostMapping(value = "/payment/success", consumes = "application/x-www-form-urlencoded")
-    public ResponseEntity<String> paymentSuccess(@RequestParam Map<String, String> formData) {
+    public void paymentSuccess(@RequestParam Map<String, String> formData,  HttpServletResponse response)throws IOException, java.io.IOException  {
         String tranId = formData.get("tran_id");
         if (tranId == null) {
-            return ResponseEntity.badRequest().body("Transaction ID missing");
+            response.sendRedirect(frontendBaseUrl + "/payment-fail?error=missing_tran_id");
+            return;
         }
 
         Optional<PaymentTransaction> transactionOpt = paymentTransactionRepository.findByGatewayTrxId(tranId);
@@ -172,17 +182,26 @@ public class OrderController {
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
 
-            return ResponseEntity.ok("Payment Successful! Your order has been placed successfully.");
+            AuctionItem auctionItem = order.getAuctionItem();
+            if (auctionItem != null) {
+                auctionItem.setStatus(com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED);
+                auctionItemRepository.save(auctionItem);
+            }
+
+            response.sendRedirect(frontendBaseUrl + "/payment-success?tran_id=" + tranId);
+            return;
         }
 
-        return ResponseEntity.badRequest().body("Transaction not found");
+        response.sendRedirect(frontendBaseUrl + "/payment-fail?error=something_went_wrong");
+        return;
     }
 
     @PostMapping(value = "/payment/fail", consumes = "application/x-www-form-urlencoded")
-    public ResponseEntity<String> paymentFail(@RequestParam Map<String, String> formData) {
+    public void paymentFail(@RequestParam Map<String, String> formData, HttpServletResponse response)throws IOException, java.io.IOException  {
         String tranId = formData.get("tran_id");
         if (tranId == null) {
-            return ResponseEntity.badRequest().body("Transaction ID missing");
+            response.sendRedirect(frontendBaseUrl + "/payment-fail?error=missing_tran_id");
+            return;
         }
 
         Optional<PaymentTransaction> transactionOpt = paymentTransactionRepository.findByGatewayTrxId(tranId);
@@ -201,17 +220,19 @@ public class OrderController {
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
 
-            return ResponseEntity.ok("Payment Failed! Your order has been cancelled.");
+            response.sendRedirect(frontendBaseUrl + "/payment-fail?tran_id=" + tranId);
+            return;
         }
-
-        return ResponseEntity.badRequest().body("Transaction not found");
+        response.sendRedirect(frontendBaseUrl + "/payment-fail?error=not_found");
+        return;
     }
 
     @PostMapping(value = "/payment/cancel", consumes = "application/x-www-form-urlencoded")
-    public ResponseEntity<String> paymentCancel(@RequestParam Map<String, String> formData) {
+    public void paymentCancel(@RequestParam Map<String, String> formData, HttpServletResponse response)throws IOException, java.io.IOException  {
         String tranId = formData.get("tran_id");
         if (tranId == null) {
-            return ResponseEntity.badRequest().body("Transaction ID missing");
+            response.sendRedirect(frontendBaseUrl + "/payment-cancel?error=missing_tran_id");
+            return;
         }
 
         Optional<PaymentTransaction> transactionOpt = paymentTransactionRepository.findByGatewayTrxId(tranId);
@@ -230,9 +251,47 @@ public class OrderController {
             order.setStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
 
-            return ResponseEntity.ok("Payment Cancelled.");
+            response.sendRedirect(frontendBaseUrl + "/payment-cancel?tran_id="+tranId);
+            return;
         }
 
-        return ResponseEntity.badRequest().body("Transaction not found");
+        response.sendRedirect(frontendBaseUrl + "/payment-cancel?error=not_found");
+        return;
     }
+
+
+    @PostMapping(value = "/checkout/summary")
+    public ResponseEntity<ApiResponse<CheckOutSummaryResponse>> checkoutSummary(
+            @Valid @RequestBody OrderRequestDTO request, Principal principal) {
+
+        AuctionItem auctionItem = auctionItemRepository.findById(request.getAuctionItemId())
+                .orElseThrow(() -> new IllegalArgumentException("Auction item not found"));
+                
+                double currentBid = auctionItem.getCurrentHighestBid();
+
+                double vat = currentBid * 0.15;
+
+                // Apply minimums
+                double platformFee = currentBid * 0.02;
+                if (platformFee == 0) {
+                    platformFee = 200;
+                }
+
+                double shippingCost = currentBid * 0.05;
+                if (shippingCost == 0) {
+                    shippingCost = 500;
+}
+
+                final CheckOutSummaryResponse  response = CheckOutSummaryResponse.builder()
+                .soldPrice(currentBid)
+                .vat(vat)
+                .platfromFee(platformFee)
+                .shippingCost(shippingCost)
+                .build();
+
+                return ResponseEntity
+                    .ok(ApiResponse.success(response, "Success", HttpStatus.OK.value()));
+
+            }
+
 }

@@ -22,11 +22,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.security.Principal;
-
 
 @RestController
 @RequestMapping("/api/v1/auction")
@@ -119,25 +120,73 @@ public class AuctionItemController {
         }
 
 
-        @GetMapping("/items")
-        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getAuctionItems(Principal principal) {
+        @GetMapping("/items-mine")
+        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getMyAuctionItems(Principal principal) {
            
             User seller = userRepository.findByEmail(principal.getName())
                                 .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
 
-              final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
+            final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
+            List<AuctionItemResponse> responseList = mapToResponseList(items);
 
-                List<AuctionItemResponse> responseList = items.stream()
-                        .map(item -> AuctionItemResponse.builder()
+            return ResponseEntity.ok(
+                    ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value())
+            );
+        }
+
+        @GetMapping("/items-others")
+        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getOtherAuctionItems(Principal principal) {
+            
+            User currentUser = userRepository.findByEmail(principal.getName())
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser).stream()
+                    .filter(item -> item.getStatus() != com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED)
+                    .toList();
+            List<AuctionItemResponse> responseList = mapToResponseList(items);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(responseList, "Other auction items fetched", HttpStatus.OK.value())
+            );
+        }
+
+        private List<AuctionItemResponse> mapToResponseList(List<AuctionItem> items) {
+            return items.stream()
+                    .map(item -> {
+                        List<AuctionImage> images = auctionImageRepository.findByAuctionItem(item);
+                        String imageUrl = !images.isEmpty() ? images.get(0).getImageUrl() : null;
+                        
+                        if (imageUrl != null && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+                            imageUrl = "http://localhost:8080/" + imageUrl;
+                        }
+
+                        Long timeLeft = null;
+                        LocalDateTime now = LocalDateTime.now();
+                        if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.PENDING || 
+                            item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.SCHEDULED) {
+                            if (item.getStartAt() != null) {
+                                timeLeft = Duration.between(now, item.getStartAt()).toMillis();
+                                if (timeLeft < 0) timeLeft = 0L;
+                            }
+                        } else if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.LIVE) {
+                            if (item.getEndAt() != null) {
+                                timeLeft = Duration.between(now, item.getEndAt()).toMillis();
+                                if (timeLeft < 0) timeLeft = 0L;
+                            }
+                        }
+
+                        return AuctionItemResponse.builder()
                                 .id(item.getId())
                                 .title(item.getTitle())
                                 .description(item.getDescription())
-                                .build())
-                        .toList();
-
-                return ResponseEntity.ok(
-                        ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value())
-    );
+                                .image(imageUrl)
+                                .currentHighestBid(item.getCurrentHighestBid())
+                                .status(item.getStatus())
+                                .timeLeft(timeLeft)
+                                .minimumBidIncrement(item.getMinimumBidIncrement())
+                                .build();
+                    })
+                    .toList();
         }
         
 }
