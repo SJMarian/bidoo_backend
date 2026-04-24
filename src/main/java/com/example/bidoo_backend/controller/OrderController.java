@@ -182,6 +182,12 @@ public class OrderController {
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
 
+            AuctionItem auctionItem = order.getAuctionItem();
+            if (auctionItem != null) {
+                auctionItem.setStatus(com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED);
+                auctionItemRepository.save(auctionItem);
+            }
+
             response.sendRedirect(frontendBaseUrl + "/payment-success?tran_id=" + tranId);
             return;
         }

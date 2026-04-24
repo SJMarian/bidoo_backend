@@ -140,7 +140,9 @@ public class AuctionItemController {
             User currentUser = userRepository.findByEmail(principal.getName())
                                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-            final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser);
+            final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser).stream()
+                    .filter(item -> item.getStatus() != com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED)
+                    .toList();
             List<AuctionItemResponse> responseList = mapToResponseList(items);
 
             return ResponseEntity.ok(
