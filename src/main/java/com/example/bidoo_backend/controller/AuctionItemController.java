@@ -71,7 +71,7 @@ public class AuctionItemController {
                                 .startAt(request.getStartAt())
                                 .endAt(request.getEndAt())
                                 .extendSeconds(request.getExtendSeconds())
-                                .status(com.example.bidoo_backend.enums.AuctionItemStatus.PENDING)
+                                .status(com.example.bidoo_backend.enums.AuctionItemStatus.UPCOMING)
                                 .totalBids(0)
                                 .currentHighestBid(request.getBidStartingPrice())
                                 .build();
@@ -162,13 +162,12 @@ public class AuctionItemController {
 
                         Long timeLeft = null;
                         LocalDateTime now = LocalDateTime.now();
-                        if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.PENDING || 
-                            item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.SCHEDULED) {
+                        if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.UPCOMING) {
                             if (item.getStartAt() != null) {
                                 timeLeft = Duration.between(now, item.getStartAt()).toMillis();
                                 if (timeLeft < 0) timeLeft = 0L;
                             }
-                        } else if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.LIVE) {
+                        } else if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.ACTIVE) {
                             if (item.getEndAt() != null) {
                                 timeLeft = Duration.between(now, item.getEndAt()).toMillis();
                                 if (timeLeft < 0) timeLeft = 0L;
@@ -189,4 +188,68 @@ public class AuctionItemController {
                     .toList();
         }
         
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> searchAuctions(
+            @RequestParam(required = false) com.example.bidoo_backend.enums.AuctionItemStatus status,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Boolean endingSoon,
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate,
+            @RequestParam(required = false) Integer minBids
+    ) {
+        List<AuctionItem> items = auctionItemRepository.findAll();
+
+        if (status != null) {
+            items = items.stream()
+                    .filter(item -> item.getStatus() == status)
+                    .toList();
+        }
+
+        if (minPrice != null) {
+            items = items.stream()
+                    .filter(item -> item.getCurrentHighestBid() != null &&
+                            item.getCurrentHighestBid() >= minPrice)
+                    .toList();
+        }
+
+        if (maxPrice != null) {
+            items = items.stream()
+                    .filter(item -> item.getCurrentHighestBid() != null &&
+                            item.getCurrentHighestBid() <= maxPrice)
+                    .toList();
+        }
+
+        if (Boolean.TRUE.equals(endingSoon)) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime next24Hours = now.plusHours(24);
+
+            items = items.stream()
+                    .filter(item -> item.getEndAt() != null &&
+                            item.getEndAt().isAfter(now) &&
+                            item.getEndAt().isBefore(next24Hours))
+                    .toList();
+        }
+
+        if (startDate != null && endDate != null) {
+            items = items.stream()
+                    .filter(item -> item.getStartAt() != null &&
+                            !item.getStartAt().isBefore(startDate) &&
+                            !item.getStartAt().isAfter(endDate))
+                    .toList();
+        }
+
+        if (minBids != null) {
+            items = items.stream()
+                    .filter(item -> item.getTotalBids() != null &&
+                            item.getTotalBids() >= minBids)
+                    .toList();
+        }
+
+        List<AuctionItemResponse> responseList = mapToResponseList(items);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(responseList, "Filtered auctions fetched", HttpStatus.OK.value())
+        );
+    }
 }

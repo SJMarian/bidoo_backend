@@ -184,7 +184,7 @@ public class OrderController {
 
             AuctionItem auctionItem = order.getAuctionItem();
             if (auctionItem != null) {
-                auctionItem.setStatus(com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED);
+                auctionItem.setStatus(com.example.bidoo_backend.enums.AuctionItemStatus.PAID);
                 auctionItemRepository.save(auctionItem);
             }
 
