@@ -1,16 +1,16 @@
-$token2 = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaXB0b0BnbWFpbC5jb20iLCJpYXQiOjE3NzcwNDg5ODcsImV4cCI6MTc3NzEzNTM4N30.VHvvI9TDKz5354Uhr4B7eAkINUUxf5KeqCe9hSDZPsg"
-$token1 = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsZWJ1QGdtYWlsLmNvbSIsImlhdCI6MTc3NzA0OTE5MywiZXhwIjoxNzc3MTM1NTkzfQ.li0mSxnStGCu9jE69AjiNUKYHG1r26dOu2Eti-gZBhY"
+$token2 = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsZWJ1QGdtYWlsLmNvbSIsImlhdCI6MTc3NzA1MzI4MywiZXhwIjoxNzc3MTM5NjgzfQ.AIvmLmeXq0MfX0d_oEsIYFvW6I1Dwa9TyGue9UZc4Iw"
+$token1 = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzYWJyaW5hQGdtYWlsLmNvbSIsImlhdCI6MTc3NzA1MzIwOSwiZXhwIjoxNzc3MTM5NjA5fQ.y9cmu4uKb8jcimBJ6cthw_OIw9czWfUwRDLY7WfEtxk"
 
 $url = "http://localhost:8080/api/v1/bids"
 
 $body1 = @{
     auctionItemId = 2
-    bidAmount = 2000
+    bidAmount = 200
 } | ConvertTo-Json
 
 $body2 = @{
     auctionItemId = 2
-    bidAmount = 2000
+    bidAmount = 200
 } | ConvertTo-Json
 
 $job1 = Start-Job -ScriptBlock {

@@ -73,7 +73,7 @@ public class AuctionItemController {
                                 .extendSeconds(request.getExtendSeconds())
                                 .status(com.example.bidoo_backend.enums.AuctionItemStatus.PENDING)
                                 .totalBids(0)
-                                .currentHighestBid(0.0)
+                                .currentHighestBid(request.getBidStartingPrice())
                                 .build();
 
                 AuctionItem savedItem = auctionItemRepository.save(auctionItem);

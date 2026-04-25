@@ -41,9 +41,9 @@ public class BidService {
             //     throw new RuntimeException("Auction is not live");
             // }
 
-            if (auctionItem.getStartAt() != null && now.isBefore(auctionItem.getStartAt())) {
-                throw new RuntimeException("Auction has not started yet");
-            }
+            // if (auctionItem.getStartAt() != null && now.isBefore(auctionItem.getStartAt())) {
+            //     throw new RuntimeException("Auction has not started yet");
+            // }
 
             if (auctionItem.getEndAt() != null && now.isAfter(auctionItem.getEndAt())) {
                 throw new RuntimeException("Auction has already ended");
