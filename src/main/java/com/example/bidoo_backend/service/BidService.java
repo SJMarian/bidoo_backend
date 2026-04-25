@@ -45,9 +45,9 @@ public class BidService {
             //     throw new RuntimeException("Auction has not started yet");
             // }
 
-            if (auctionItem.getEndAt() != null && now.isAfter(auctionItem.getEndAt())) {
-                throw new RuntimeException("Auction has already ended");
-            }
+            //if (auctionItem.getEndAt() != null && now.isAfter(auctionItem.getEndAt())) {
+                //throw new RuntimeException("Auction has already ended");
+            //}
 
             Double currentHighestBid = auctionItem.getCurrentHighestBid();
 
