@@ -22,4 +22,5 @@ public class AuctionItemResponse {
     private AuctionItemStatus status;
     private Long timeLeft;
     private Double minimumBidIncrement;
+    private String currency;
 }

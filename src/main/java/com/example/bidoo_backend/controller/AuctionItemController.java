@@ -114,6 +114,10 @@ public class AuctionItemController {
                                 .id(savedItem.getId())
                                 .title(savedItem.getTitle())
                                 .description(savedItem.getDescription())
+                                .currentHighestBid(savedItem.getCurrentHighestBid())
+                                .status(savedItem.getStatus())
+                                .minimumBidIncrement(savedItem.getMinimumBidIncrement())
+                                .currency(savedItem.getCurrency())
                                 .build();
 
                 return ResponseEntity.ok(ApiResponse.success(response, "Auction item created", HttpStatus.OK.value()));
@@ -183,6 +187,7 @@ public class AuctionItemController {
                                 .status(item.getStatus())
                                 .timeLeft(timeLeft)
                                 .minimumBidIncrement(item.getMinimumBidIncrement())
+                                .currency(item.getCurrency())
                                 .build();
                     })
                     .toList();
