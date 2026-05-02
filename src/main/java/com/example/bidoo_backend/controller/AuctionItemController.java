@@ -123,138 +123,158 @@ public class AuctionItemController {
                 return ResponseEntity.ok(ApiResponse.success(response, "Auction item created", HttpStatus.OK.value()));
         }
 
-
         @GetMapping("/items-mine")
         public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getMyAuctionItems(Principal principal) {
-           
-            User seller = userRepository.findByEmail(principal.getName())
+
+                User seller = userRepository.findByEmail(principal.getName())
                                 .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
 
-            final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
-            List<AuctionItemResponse> responseList = mapToResponseList(items);
+                final List<AuctionItem> items = auctionItemRepository.getBySeller(seller);
+                List<AuctionItemResponse> responseList = mapToResponseList(items);
 
-            return ResponseEntity.ok(
-                    ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value())
-            );
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseList, "Auction items fetched", HttpStatus.OK.value()));
         }
 
         @GetMapping("/items-others")
         public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getOtherAuctionItems(Principal principal) {
-            
-            User currentUser = userRepository.findByEmail(principal.getName())
+
+                User currentUser = userRepository.findByEmail(principal.getName())
                                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-            final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser).stream()
-                    .filter(item -> item.getStatus() != com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED)
-                    .toList();
-            List<AuctionItemResponse> responseList = mapToResponseList(items);
+                final List<AuctionItem> items = auctionItemRepository.findBySellerNot(currentUser).stream()
+                                .filter(item -> item
+                                                .getStatus() != com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED)
+                                .toList();
+                List<AuctionItemResponse> responseList = mapToResponseList(items);
 
-            return ResponseEntity.ok(
-                    ApiResponse.success(responseList, "Other auction items fetched", HttpStatus.OK.value())
-            );
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseList, "Other auction items fetched",
+                                                HttpStatus.OK.value()));
+        }
+
+        @GetMapping("/items-won")
+        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> getWonAuctionItems(Principal principal) {
+
+                User currentUser = userRepository.findByEmail(principal.getName())
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+                List<com.example.bidoo_backend.enums.AuctionItemStatus> statuses = List.of(
+                                com.example.bidoo_backend.enums.AuctionItemStatus.CLOSED,
+                                com.example.bidoo_backend.enums.AuctionItemStatus.PAID,
+                                com.example.bidoo_backend.enums.AuctionItemStatus.CANCELLED,
+                                com.example.bidoo_backend.enums.AuctionItemStatus.PENDING);
+
+                final List<AuctionItem> items = auctionItemRepository.findByCurrentHighestBidderAndStatusIn(currentUser,
+                                statuses);
+                List<AuctionItemResponse> responseList = mapToResponseList(items);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseList, "Won auction items fetched", HttpStatus.OK.value()));
         }
 
         private List<AuctionItemResponse> mapToResponseList(List<AuctionItem> items) {
-            return items.stream()
-                    .map(item -> {
-                        List<AuctionImage> images = auctionImageRepository.findByAuctionItem(item);
-                        String imageUrl = !images.isEmpty() ? images.get(0).getImageUrl() : null;
-                        
-                        if (imageUrl != null && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
-                            imageUrl = "http://localhost:8080/" + imageUrl;
-                        }
+                return items.stream()
+                                .map(item -> {
+                                        List<AuctionImage> images = auctionImageRepository.findByAuctionItem(item);
+                                        String imageUrl = !images.isEmpty() ? images.get(0).getImageUrl() : null;
 
-                        Long timeLeft = null;
+                                        if (imageUrl != null && !imageUrl.startsWith("http://")
+                                                        && !imageUrl.startsWith("https://")) {
+                                                imageUrl = "http://localhost:8080/" + imageUrl;
+                                        }
+
+                                        Long timeLeft = null;
+                                        LocalDateTime now = LocalDateTime.now();
+                                        if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.UPCOMING) {
+                                                if (item.getStartAt() != null) {
+                                                        timeLeft = Duration.between(now, item.getStartAt()).toMillis();
+                                                        if (timeLeft < 0)
+                                                                timeLeft = 0L;
+                                                }
+                                        } else if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.ACTIVE) {
+                                                if (item.getEndAt() != null) {
+                                                        timeLeft = Duration.between(now, item.getEndAt()).toMillis();
+                                                        if (timeLeft < 0)
+                                                                timeLeft = 0L;
+                                                }
+                                        }
+
+                                        return AuctionItemResponse.builder()
+                                                        .id(item.getId())
+                                                        .title(item.getTitle())
+                                                        .description(item.getDescription())
+                                                        .image(imageUrl)
+                                                        .currentHighestBid(item.getCurrentHighestBid())
+                                                        .status(item.getStatus())
+                                                        .timeLeft(timeLeft)
+                                                        .minimumBidIncrement(item.getMinimumBidIncrement())
+                                                        .currency(item.getCurrency())
+                                                        .build();
+                                })
+                                .toList();
+        }
+
+        @GetMapping("/search")
+        public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> searchAuctions(
+                        @RequestParam(required = false) com.example.bidoo_backend.enums.AuctionItemStatus status,
+                        @RequestParam(required = false) Double minPrice,
+                        @RequestParam(required = false) Double maxPrice,
+                        @RequestParam(required = false) Boolean endingSoon,
+                        @RequestParam(required = false) LocalDateTime startDate,
+                        @RequestParam(required = false) LocalDateTime endDate,
+                        @RequestParam(required = false) Integer minBids) {
+                List<AuctionItem> items = auctionItemRepository.findAll();
+
+                if (status != null) {
+                        items = items.stream()
+                                        .filter(item -> item.getStatus() == status)
+                                        .toList();
+                }
+
+                if (minPrice != null) {
+                        items = items.stream()
+                                        .filter(item -> item.getCurrentHighestBid() != null &&
+                                                        item.getCurrentHighestBid() >= minPrice)
+                                        .toList();
+                }
+
+                if (maxPrice != null) {
+                        items = items.stream()
+                                        .filter(item -> item.getCurrentHighestBid() != null &&
+                                                        item.getCurrentHighestBid() <= maxPrice)
+                                        .toList();
+                }
+
+                if (Boolean.TRUE.equals(endingSoon)) {
                         LocalDateTime now = LocalDateTime.now();
-                        if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.UPCOMING) {
-                            if (item.getStartAt() != null) {
-                                timeLeft = Duration.between(now, item.getStartAt()).toMillis();
-                                if (timeLeft < 0) timeLeft = 0L;
-                            }
-                        } else if (item.getStatus() == com.example.bidoo_backend.enums.AuctionItemStatus.ACTIVE) {
-                            if (item.getEndAt() != null) {
-                                timeLeft = Duration.between(now, item.getEndAt()).toMillis();
-                                if (timeLeft < 0) timeLeft = 0L;
-                            }
-                        }
+                        LocalDateTime next24Hours = now.plusHours(24);
 
-                        return AuctionItemResponse.builder()
-                                .id(item.getId())
-                                .title(item.getTitle())
-                                .description(item.getDescription())
-                                .image(imageUrl)
-                                .currentHighestBid(item.getCurrentHighestBid())
-                                .status(item.getStatus())
-                                .timeLeft(timeLeft)
-                                .minimumBidIncrement(item.getMinimumBidIncrement())
-                                .currency(item.getCurrency())
-                                .build();
-                    })
-                    .toList();
+                        items = items.stream()
+                                        .filter(item -> item.getEndAt() != null &&
+                                                        item.getEndAt().isAfter(now) &&
+                                                        item.getEndAt().isBefore(next24Hours))
+                                        .toList();
+                }
+
+                if (startDate != null && endDate != null) {
+                        items = items.stream()
+                                        .filter(item -> item.getStartAt() != null &&
+                                                        !item.getStartAt().isBefore(startDate) &&
+                                                        !item.getStartAt().isAfter(endDate))
+                                        .toList();
+                }
+
+                if (minBids != null) {
+                        items = items.stream()
+                                        .filter(item -> item.getTotalBids() != null &&
+                                                        item.getTotalBids() >= minBids)
+                                        .toList();
+                }
+
+                List<AuctionItemResponse> responseList = mapToResponseList(items);
+
+                return ResponseEntity.ok(
+                                ApiResponse.success(responseList, "Filtered auctions fetched", HttpStatus.OK.value()));
         }
-        
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<AuctionItemResponse>>> searchAuctions(
-            @RequestParam(required = false) com.example.bidoo_backend.enums.AuctionItemStatus status,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Boolean endingSoon,
-            @RequestParam(required = false) LocalDateTime startDate,
-            @RequestParam(required = false) LocalDateTime endDate,
-            @RequestParam(required = false) Integer minBids
-    ) {
-        List<AuctionItem> items = auctionItemRepository.findAll();
-
-        if (status != null) {
-            items = items.stream()
-                    .filter(item -> item.getStatus() == status)
-                    .toList();
-        }
-
-        if (minPrice != null) {
-            items = items.stream()
-                    .filter(item -> item.getCurrentHighestBid() != null &&
-                            item.getCurrentHighestBid() >= minPrice)
-                    .toList();
-        }
-
-        if (maxPrice != null) {
-            items = items.stream()
-                    .filter(item -> item.getCurrentHighestBid() != null &&
-                            item.getCurrentHighestBid() <= maxPrice)
-                    .toList();
-        }
-
-        if (Boolean.TRUE.equals(endingSoon)) {
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime next24Hours = now.plusHours(24);
-
-            items = items.stream()
-                    .filter(item -> item.getEndAt() != null &&
-                            item.getEndAt().isAfter(now) &&
-                            item.getEndAt().isBefore(next24Hours))
-                    .toList();
-        }
-
-        if (startDate != null && endDate != null) {
-            items = items.stream()
-                    .filter(item -> item.getStartAt() != null &&
-                            !item.getStartAt().isBefore(startDate) &&
-                            !item.getStartAt().isAfter(endDate))
-                    .toList();
-        }
-
-        if (minBids != null) {
-            items = items.stream()
-                    .filter(item -> item.getTotalBids() != null &&
-                            item.getTotalBids() >= minBids)
-                    .toList();
-        }
-
-        List<AuctionItemResponse> responseList = mapToResponseList(items);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(responseList, "Filtered auctions fetched", HttpStatus.OK.value())
-        );
-    }
 }

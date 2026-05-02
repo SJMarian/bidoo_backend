@@ -40,4 +40,8 @@ public interface AuctionItemRepository extends JpaRepository<AuctionItem, Long> 
     );
 
     List<AuctionItem> findByTotalBidsGreaterThanEqual(Integer totalBids);
+
+    List<AuctionItem> findByCurrentHighestBidderAndStatusIn(User bidder, List<AuctionItemStatus> statuses);
+
+    List<AuctionItem> findByCurrentHighestBidder(User bidder);
 }
