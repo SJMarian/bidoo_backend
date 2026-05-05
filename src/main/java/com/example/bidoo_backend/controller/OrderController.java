@@ -53,14 +53,7 @@ public class OrderController {
         AuctionItem auctionItem = auctionItemRepository.findById(request.getAuctionItemId())
                 .orElseThrow(() -> new IllegalArgumentException("Auction item not found"));
 
-        // TEMP comment code. remove after testing ----
-
-        // if (!buyer.equals(auctionItem.getCurrentHighestBidder())) {
-        // return ResponseEntity.badRequest().body(ApiResponse.error("Only the highest
-        // bidder can place an order", HttpStatus.BAD_REQUEST.value()));
-        // }
-
-        // Temp comment code end ---------------
+        
 
         Order order;
         Payment payment;
