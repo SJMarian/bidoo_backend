@@ -17,4 +17,6 @@ public class BidResponse {
     private Integer totalBids;
     private Long version;
     private LocalDateTime bidTime;
+    private LocalDateTime auctionEndAt;
+    private String message;
 }

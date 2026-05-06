@@ -63,6 +63,15 @@ public class BidService {
                 throw new RuntimeException("Bid must be at least " + minimumRequiredBid);
             }
 
+            String responseMessage = "Bid placed successfully";
+            if (auctionItem.getEndAt() != null) {
+                LocalDateTime oneMinuteBeforeEnd = auctionItem.getEndAt().minusMinutes(1);
+                if (!now.isBefore(oneMinuteBeforeEnd) && !now.isAfter(auctionItem.getEndAt())) {
+                    auctionItem.setEndAt(auctionItem.getEndAt().plusMinutes(2));
+                    responseMessage = "Bid placed successfully. Auction time extended by 2 minutes.";
+                }
+            }
+
             auctionItem.setCurrentHighestBid(request.getBidAmount());
             auctionItem.setCurrentHighestBidder(bidder);
             auctionItem.setTotalBids(
@@ -90,6 +99,8 @@ public class BidService {
                     .totalBids(savedAuctionItem.getTotalBids())
                     .version(savedAuctionItem.getVersion())
                     .bidTime(savedBid.getBidTime())
+                    .auctionEndAt(savedAuctionItem.getEndAt())
+                    .message(responseMessage)
                     .build();
 
         } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {

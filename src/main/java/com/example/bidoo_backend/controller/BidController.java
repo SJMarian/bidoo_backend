@@ -27,7 +27,7 @@ public class BidController {
             BidResponse response = bidService.placeBid(request, authentication);
 
             return ResponseEntity.ok(
-                    ApiResponse.success(response, "Bid placed successfully", HttpStatus.OK.value())
+                    ApiResponse.success(response, response.getMessage() != null ? response.getMessage() : "Bid placed successfully", HttpStatus.OK.value())
             );
 
         } catch (RuntimeException e) {
